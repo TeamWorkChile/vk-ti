@@ -357,7 +357,7 @@
 
   let score = 0, best = 0, throws = 0, streak = 0;
   let charging = false, chargeStart = 0;
-  let axe = null, flying = false;
+  let axe = null, flying = false, hitTimer = null;
   let msg = '', msgTimer = 0;
   let mouseX = W/2, mouseY = H/2;
   let particles = [];
@@ -624,6 +624,7 @@
     const dx = mouseX - (THROWER_X + 22);
     const dy = mouseY - (THROWER_Y - 48);
     const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    clearTimeout(hitTimer);
     axe = { x: THROWER_X+22, y: THROWER_Y-48, vx: (dx/len)*power, vy: (dy/len)*power - 1, hit: false };
     flying = true; axeRot = 0; charging = false;
   }
@@ -638,22 +639,28 @@
     targetY = H/2 + targetBob;
 
     if (flying && axe) {
-      axe.vy += 0.3 * dt;
-      axe.x += axe.vx * dt;
-      axe.y += axe.vy * dt;
-      axeRot += 0.19 * dt;
-
       if (!axe.hit) {
+        axe.vy += 0.3 * dt;
+        axe.x  += axe.vx * dt;
+        axe.y  += axe.vy * dt;
+        axeRot += 0.19 * dt;
+
         const dx = axe.x - TARGET_X, dy = axe.y - targetY;
         if (Math.sqrt(dx*dx + dy*dy) <= ZONES[ZONES.length-1].r) {
-          axe.hit = true; axe.vx = 0; axe.vy = 0;
+          axe.hit = true;
+          axe.vx = 0; axe.vy = 0;
           checkHit();
-          setTimeout(() => { flying = false; axe = null; }, 900);
+          clearTimeout(hitTimer);
+          hitTimer = setTimeout(() => {
+            axe = null;
+            flying = false;
+            charging = false;
+          }, 850);
+        } else if (axe.x > W+20 || axe.y > H+20 || axe.x < -20) {
+          streak = 0; throws++;
+          showMsg('¡Al vacío!'); updateUI();
+          axe = null; flying = false; charging = false;
         }
-      }
-      if (axe && (axe.x > W+20 || axe.y > H+20 || axe.x < -20)) {
-        if (!axe.hit) { streak = 0; throws++; showMsg('¡Al vacío!'); updateUI(); }
-        flying = false; axe = null;
       }
     }
 
